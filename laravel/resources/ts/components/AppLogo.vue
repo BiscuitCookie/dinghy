@@ -1,0 +1,22 @@
+<script setup lang="ts">
+withDefaults(defineProps<{ size?: number }>(), { size: 40 });
+</script>
+
+<template>
+    <svg :width="size" :height="size" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Dinghy — Ретро">
+        <defs>
+            <linearGradient id="logo-gradient" x1="0" y1="0" x2="48" y2="48">
+                <stop offset="0" stop-color="#6366f1" />
+                <stop offset="1" stop-color="#4338ca" />
+            </linearGradient>
+        </defs>
+        <rect width="48" height="48" rx="12" fill="url(#logo-gradient)" />
+        <!-- волна -->
+        <path d="M6 36c4-2.5 8-2.5 12 0s8 2.5 12 0 8-2.5 12 0" stroke="#a5b4fc" stroke-width="2.5" stroke-linecap="round" />
+        <!-- лодочка -->
+        <path d="M10 29h28c0 5-3.5 9-9 9H19c-5.5 0-9-4-9-9Z" fill="#fbbf24" />
+        <!-- человечек -->
+        <circle cx="24" cy="15" r="4.5" fill="#ffffff" />
+        <path d="M24 20c-3 0-5 2.5-5 6v3h10v-3c0-3.5-2-6-5-6Z" fill="#ffffff" fill-opacity="0.92" />
+    </svg>
+</template>

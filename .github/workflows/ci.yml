@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    name: Тесты Laravel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo, pdo_sqlite, mbstring, xml, zip
+          coverage: none
+
+      - name: Установка зависимостей
+        working-directory: laravel
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Подготовка окружения
+        working-directory: laravel
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Тесты
+        working-directory: laravel
+        run: php artisan test
+
+      - name: Проверка стиля (Pint)
+        working-directory: laravel
+        run: ./vendor/bin/pint --test
+
+  frontend:
+    name: Сборка фронтенда
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: laravel/package-lock.json
+
+      - name: Установка зависимостей
+        working-directory: laravel
+        run: npm ci
+
+      - name: Сборка
+        working-directory: laravel
+        run: npm run build
+
+  audit:
+    name: Аудит зависимостей
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Composer audit
+        working-directory: laravel
+        run: |
+          composer install --no-interaction --prefer-dist --no-scripts
+          composer audit --locked
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: npm audit
+        working-directory: laravel
+        run: npm audit --audit-level=high
+

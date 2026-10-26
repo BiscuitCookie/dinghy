@@ -1,0 +1,22 @@
+# Secrets & local config
+.env
+laravel/.env
+laravel/.env.*
+!laravel/.env.example
+
+# TLS private keys & certificates (generate locally, see README)
+certs/*.key
+certs/*.crt
+certs/*.srl
+
+# Dependencies & build artifacts
+laravel/vendor/
+laravel/node_modules/
+laravel/public/build/
+laravel/public/hot
+
+# Runtime
+laravel/storage/logs/*.log
+laravel/storage/framework/views/*.php
+laravel/storage/framework/cache/data/
+*.log

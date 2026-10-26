@@ -1,0 +1,85 @@
+services:
+  web:
+    build: ./apache
+    container_name: lamp-web
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./www:/var/www/html
+      - ./laravel:/var/www/laravel
+      - ./certs:/etc/apache2/certs:ro
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+      DB_NAME: ${DB_NAME:-appdb}
+      DB_USER: ${DB_USER:-appuser}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+
+  db:
+    image: mysql:8.4
+    container_name: lamp-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-appdb}
+      MYSQL_USER: ${DB_USER:-appuser}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootsecret}
+    volumes:
+      - db_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+  phpmyadmin:
+    image: phpmyadmin:5
+    container_name: lamp-pma
+    depends_on:
+      - db
+    environment:
+      PMA_HOST: db
+      PMA_USER: root
+      PMA_PASSWORD: ${DB_ROOT_PASSWORD:-rootsecret}
+    ports:
+      - "8081:80"
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: lamp-rabbit
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-retro}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-retro}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  queue:
+    build: ./apache
+    container_name: lamp-queue
+    restart: unless-stopped
+    user: "33:33"
+    command: /usr/local/bin/docker-queue.sh
+    working_dir: /var/www/laravel
+    environment:
+      HOME: /tmp
+      XDG_CONFIG_HOME: /tmp
+      DB_HOST: db
+      DB_NAME: ${DB_NAME:-appdb}
+      DB_USER: ${DB_USER:-appuser}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+      QUEUE_CONNECTION: ${QUEUE_CONNECTION:-database}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER:-retro}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-retro}
+    volumes:
+      - ./laravel:/var/www/laravel
+    depends_on:
+      - db
+      - rabbitmq
+
+volumes:
+  db_data:
+  rabbitmq_data:
