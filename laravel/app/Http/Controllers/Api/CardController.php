@@ -7,11 +7,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreCardRequest;
 use App\Http\Resources\CardResource;
 use App\Models\Card;
+use App\Models\Retro;
 use App\Models\RetroColumn;
 use App\Models\Vote;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 class CardController extends Controller
@@ -55,23 +57,26 @@ class CardController extends Controller
         Gate::authorize('view', $retro);
         abort_unless($retro->phase === RetroPhase::Vote, 409, 'Сейчас не фаза голосования');
 
-        $existing = $card->votes()->where('user_id', $request->user()->id)->first();
+        $result = DB::transaction(function () use ($request, $card, $retro) {
+            $lockedRetro = Retro::lockForUpdate()->find($retro->id);
 
-        if ($existing) {
-            $existing->delete();
+            $existing = $card->votes()->where('user_id', $request->user()->id)->first();
+            if ($existing) {
+                $existing->delete();
 
-            return (new CardResource($this->reload($card)))->response();
-        }
+                return $card;
+            }
 
-        $myVotes = Vote::where('user_id', $request->user()->id)
-            ->whereIn('card_id', $retro->cards()->select('cards.id'))
-            ->count();
+            $myVotes = Vote::where('user_id', $request->user()->id)
+                ->whereIn('card_id', $lockedRetro->cards()->select('cards.id'))
+                ->count();
 
-        abort_if($myVotes >= $retro->votes_per_user, 409, 'Лимит голосов исчерпан');
+            abort_if($myVotes >= $lockedRetro->votes_per_user, 409, 'Лимит голосов исчерпан');
 
-        $card->votes()->create(['user_id' => $request->user()->id]);
+            return $card->votes()->create(['user_id' => $request->user()->id])->card;
+        });
 
-        return (new CardResource($this->reload($card)))->response();
+        return (new CardResource($this->reload($result)))->response();
     }
 
     private function reload(Card $card): Card
