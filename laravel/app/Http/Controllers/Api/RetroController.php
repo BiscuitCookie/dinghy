@@ -16,8 +16,6 @@ use Illuminate\Support\Facades\Gate;
 
 class RetroController extends Controller
 {
-    public function __construct(private readonly CreateRetro $createRetro) {}
-
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -32,9 +30,9 @@ class RetroController extends Controller
         ]);
     }
 
-    public function store(StoreRetroRequest $request): JsonResponse
+    public function store(StoreRetroRequest $request, CreateRetro $createRetro): JsonResponse
     {
-        $retro = ($this->createRetro)($request->user(), $request->validatedRetroData());
+        $retro = $createRetro($request->user(), $request->validatedRetroData());
 
         return (new RetroResource($retro))
             ->response()

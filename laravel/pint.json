@@ -6,6 +6,13 @@
             "operators": {
                 "=>": "align"
             }
+        },
+        "new_with_parentheses": true,
+        "class_definition": {
+            "space_before_parenthesis": true
+        },
+        "braces_position": {
+            "anonymous_classes_opening_brace": "same_line"
         }
     }
 }
