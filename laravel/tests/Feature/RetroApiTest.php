@@ -189,6 +189,7 @@ class RetroApiTest extends TestCase
         $assignee = User::factory()->create();
         $user = User::factory()->create();
         $retro = $this->makeRetro($user);
+        $retro->participants()->attach($assignee->id, ['role' => Retro::ROLE_PARTICIPANT]);
         $retro->update(['phase' => RetroPhase::Discuss]);
 
         Queue::fake();
@@ -213,6 +214,31 @@ class RetroApiTest extends TestCase
             ->assertJsonPath('phases.1.label', 'Сбор карточек')
             ->assertJsonCount(3, 'templates')
             ->assertJsonPath('templates.0.key', 'classic');
+    }
+
+    public function test_action_item_assignee_must_be_retro_participant(): void
+    {
+        $user = User::factory()->create();
+        $outsider = User::factory()->create();
+        $retro = $this->makeRetro($user);
+        $retro->update(['phase' => RetroPhase::Discuss]);
+
+        Sanctum::actingAs($user);
+        $this->postJson("/api/retros/{$retro->id}/action-items", [
+            'body'        => 'Секретная задача',
+            'assignee_id' => $outsider->id,
+        ])->assertUnprocessable()->assertJsonValidationErrors('assignee_id');
+
+        $this->assertDatabaseMissing('action_items', ['body' => 'Секретная задача']);
+    }
+
+    public function test_join_rejects_non_alphanumeric_invite_code(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+
+        $this->postJson('/api/retros/join', ['invite_code' => 'abсd!2_8'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('invite_code');
     }
 
     public function test_retro_resource_always_contains_counters(): void

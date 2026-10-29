@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreActionItemRequest;
+use App\Http\Requests\UpdateActionItemRequest;
 use App\Http\Resources\ActionItemResource;
 use App\Mail\ActionItemAssigned;
 use App\Models\ActionItem;
@@ -38,16 +39,12 @@ class ActionItemController extends Controller
             ->setStatusCode(201);
     }
 
-    public function update(Request $request, ActionItem $item): JsonResponse
+    public function update(UpdateActionItemRequest $request, ActionItem $item): JsonResponse
     {
         Gate::authorize('view', $item->retro);
         $this->abortUnlessEditable($item->retro);
 
-        $data = $request->validate([
-            'status' => ['required', 'in:'.implode(',', ActionItem::STATUSES)],
-        ]);
-
-        $item->update(['status' => $data['status']]);
+        $item->update(['status' => $request->validated('status')]);
 
         return (new ActionItemResource($item->fresh()->load('assignee')))->response();
     }

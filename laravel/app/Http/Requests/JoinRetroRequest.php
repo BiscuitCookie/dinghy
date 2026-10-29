@@ -14,7 +14,7 @@ class JoinRetroRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'invite_code' => ['required', 'string', 'size:8'],
+            'invite_code' => ['required', 'string', 'size:8', 'alpha_num'],
         ];
     }
 }
