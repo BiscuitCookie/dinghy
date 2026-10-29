@@ -45,6 +45,13 @@ async function submit() {
             <button type="submit" :disabled="loading" class="btn-primary w-full">
                 {{ loading ? 'Входим...' : 'Войти' }}
             </button>
+            <div class="flex justify-between text-sm text-ink-soft">
+                <router-link :to="{ name: 'forgot-password' }" class="text-brand-600 hover:underline">Забыли пароль?</router-link>
+                <span>
+                    Нет аккаунта?
+                    <router-link :to="{ name: 'register' }" class="text-brand-600 hover:underline">Регистрация</router-link>
+                </span>
+            </div>
         </form>
     </AuthCard>
 </template>

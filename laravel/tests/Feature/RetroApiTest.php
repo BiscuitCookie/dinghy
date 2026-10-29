@@ -7,6 +7,7 @@ use App\Models\Retro;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Mail\SendQueuedMailable;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Queue;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -201,6 +202,46 @@ class RetroApiTest extends TestCase
         ])->assertCreated();
 
         Queue::assertPushed(SendQueuedMailable::class);
+    }
+
+    public function test_forgot_password_sends_queued_mail_and_hides_account_existence(): void
+    {
+        $user = User::factory()->create();
+        Queue::fake();
+
+        $this->postJson('/api/forgot-password', ['email' => $user->email])->assertOk();
+        Queue::assertPushed(SendQueuedMailable::class);
+
+        // Несуществующий email: тот же ответ, но письмо не отправляется
+        Queue::fake();
+        $this->postJson('/api/forgot-password', ['email' => 'ghost@dinghy.tst'])->assertOk();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_reset_password_changes_password_and_invalidates_token(): void
+    {
+        $user = User::factory()->create(['password' => 'oldpassword123']);
+        $token = Password::broker()->createToken($user);
+
+        $this->postJson('/api/reset-password', [
+            'email'                 => $user->email,
+            'token'                 => $token,
+            'password'              => 'newpassword456',
+            'password_confirmation' => 'newpassword456',
+        ])->assertOk();
+
+        $this->postJson('/api/login', ['email' => $user->email, 'password' => 'oldpassword123'])
+            ->assertUnprocessable();
+        $this->postJson('/api/login', ['email' => $user->email, 'password' => 'newpassword456'])
+            ->assertOk();
+
+        // Токен одноразовый
+        $this->postJson('/api/reset-password', [
+            'email'                 => $user->email,
+            'token'                 => $token,
+            'password'              => 'anotherpassword1',
+            'password_confirmation' => 'anotherpassword1',
+        ])->assertUnprocessable()->assertJsonValidationErrors('token');
     }
 
     public function test_meta_exposes_phases_and_templates(): void
