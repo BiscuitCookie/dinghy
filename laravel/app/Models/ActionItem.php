@@ -21,11 +21,13 @@ class ActionItem extends Model
         self::STATUS_DONE,
     ];
 
+    /** @return BelongsTo<Retro, $this> */
     public function retro(): BelongsTo
     {
         return $this->belongsTo(Retro::class);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assignee_id');

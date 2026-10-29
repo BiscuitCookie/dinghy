@@ -10,11 +10,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['retro_id', 'title', 'color', 'position'])]
 class RetroColumn extends Model
 {
+    /** @return BelongsTo<Retro, $this> */
     public function retro(): BelongsTo
     {
         return $this->belongsTo(Retro::class);
     }
 
+    /** @return HasMany<Card, $this> */
     public function cards(): HasMany
     {
         return $this->hasMany(Card::class)->latest();

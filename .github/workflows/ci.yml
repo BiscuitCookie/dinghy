@@ -35,6 +35,10 @@ jobs:
         working-directory: laravel
         run: ./vendor/bin/pint --test
 
+      - name: Статический анализ (PHPStan)
+        working-directory: laravel
+        run: ./vendor/bin/phpstan analyse --no-progress
+
   frontend:
     name: Сборка фронтенда
     runs-on: ubuntu-latest

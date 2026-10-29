@@ -11,6 +11,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Str;
 
+/**
+ * @property RetroPhase $phase
+ */
 #[Fillable(['user_id', 'title', 'invite_code', 'phase', 'is_anonymous', 'votes_per_user'])]
 class Retro extends Model
 {
@@ -37,11 +40,13 @@ class Retro extends Model
         });
     }
 
+    /** @return BelongsTo<User, $this> */
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    /** @return BelongsToMany<User, $this> */
     public function participants(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'retro_user')
@@ -49,16 +54,19 @@ class Retro extends Model
             ->withTimestamps();
     }
 
+    /** @return HasMany<RetroColumn, $this> */
     public function columns(): HasMany
     {
         return $this->hasMany(RetroColumn::class)->orderBy('position');
     }
 
+    /** @return HasManyThrough<Card, RetroColumn, $this> */
     public function cards(): HasManyThrough
     {
         return $this->hasManyThrough(Card::class, RetroColumn::class);
     }
 
+    /** @return HasMany<ActionItem, $this> */
     public function actionItems(): HasMany
     {
         return $this->hasMany(ActionItem::class)->orderBy('position');

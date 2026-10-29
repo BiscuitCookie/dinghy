@@ -3,7 +3,6 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -17,9 +16,7 @@ use Laravel\Sanctum\HasApiTokens;
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
     use HasApiTokens;
-
     use HasFactory;
     use Notifiable;
 
@@ -36,11 +33,13 @@ class User extends Authenticatable
         ];
     }
 
+    /** @return HasMany<Retro, $this> */
     public function retros(): HasMany
     {
         return $this->hasMany(Retro::class);
     }
 
+    /** @return BelongsToMany<Retro, $this> */
     public function joinedRetros(): BelongsToMany
     {
         return $this->belongsToMany(Retro::class, 'retro_user')
@@ -48,11 +47,13 @@ class User extends Authenticatable
             ->withTimestamps();
     }
 
+    /** @return HasMany<Card, $this> */
     public function cards(): HasMany
     {
         return $this->hasMany(Card::class);
     }
 
+    /** @return HasMany<ActionItem, $this> */
     public function actionItems(): HasMany
     {
         return $this->hasMany(ActionItem::class, 'assignee_id');
