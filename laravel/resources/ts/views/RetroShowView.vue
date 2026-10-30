@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import draggable from 'vuedraggable';
 import { api, ApiError } from '../api';
 import { toast } from '../toast';
 import { phases } from '../store';
-import type { ActionItem, ApiResource, Retro, RetroBoard } from '../types';
+import type { ActionItem, ApiResource, BoardColumn, Card, Retro, RetroBoard } from '../types';
 
 const route = useRoute();
 const board = ref<RetroBoard | null>(null);
@@ -86,6 +87,30 @@ async function addCard(columnId: number) {
 
 async function deleteCard(cardId: number) {
     await api.delete(`/cards/${cardId}`);
+    await load();
+}
+
+// --- drag-and-drop ---
+
+interface DraggableChange {
+    added?: { element: Card; newIndex: number };
+    moved?: { element: Card; newIndex: number };
+    removed?: unknown;
+}
+
+async function onCardsChange(column: BoardColumn, event: DraggableChange) {
+    const change = event.added ?? event.moved;
+    if (!change) {
+        return; // 'removed' обрабатывается как 'added' в колонке-цели
+    }
+    try {
+        await api.patch(`/cards/${change.element.id}/move`, {
+            retro_column_id: column.id,
+            position: change.newIndex,
+        });
+    } catch {
+        toast('Не удалось переместить карточку', 'error');
+    }
     await load();
 }
 
@@ -266,25 +291,30 @@ onBeforeUnmount(() => {
                     <span class="w-2.5 h-2.5 rounded-full" :class="columnDotClasses[column.color] ?? 'bg-gray-300'" />
                     {{ column.title }}
                 </h3>
-                <ul class="mt-3 space-y-2 board-cards">
-                    <li v-for="card in column.cards" :key="card.id"
-                        class="bg-surface-muted/70 border border-gray-200 rounded-lg p-3 text-sm flex items-start justify-between gap-2 transition hover:shadow-card-hover">
-                        <span class="whitespace-pre-wrap">{{ card.body }}</span>
-                        <span class="flex items-center gap-2 shrink-0 text-xs text-ink-faint">
-                            <template v-if="card.author_name">{{ card.author_name }}</template>
-                            <button v-if="voting" type="button" @click="toggleVote(card.id)"
-                                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border transition"
-                                    :class="card.voted_by_me
-                                        ? 'bg-brand-100 border-brand-300 text-brand-700'
-                                        : 'border-gray-300 text-ink-soft hover:border-brand-300 hover:text-brand-600'">
-                                ▲ {{ card.votes_count }}
-                            </button>
-                            <span v-else-if="card.votes_count > 0" class="px-2 py-0.5 rounded-full bg-gray-100 text-ink-soft">▲ {{ card.votes_count }}</span>
-                            <button v-if="(card.is_mine || board.retro.is_facilitator) && collecting"
-                                    class="text-gray-300 hover:text-red-500 font-bold transition" @click="deleteCard(card.id)">&times;</button>
-                        </span>
-                    </li>
-                </ul>
+                <draggable tag="ul" class="mt-3 space-y-2 board-cards" :list="column.cards" item-key="id"
+                           group="retro-cards" :disabled="!collecting"
+                           ghost-class="drag-ghost" drag-class="drag-active"
+                           @change="onCardsChange(column, $event)">
+                    <template #item="{ element: card }">
+                        <li class="bg-surface-muted/70 border border-gray-200 rounded-lg p-3 text-sm flex items-start justify-between gap-2 transition hover:shadow-card-hover"
+                            :class="{ 'cursor-grab': collecting }">
+                            <span class="whitespace-pre-wrap">{{ card.body }}</span>
+                            <span class="flex items-center gap-2 shrink-0 text-xs text-ink-faint">
+                                <template v-if="card.author_name">{{ card.author_name }}</template>
+                                <button v-if="voting" type="button" @click="toggleVote(card.id)"
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border transition"
+                                        :class="card.voted_by_me
+                                            ? 'bg-brand-100 border-brand-300 text-brand-700'
+                                            : 'border-gray-300 text-ink-soft hover:border-brand-300 hover:text-brand-600'">
+                                    ▲ {{ card.votes_count }}
+                                </button>
+                                <span v-else-if="card.votes_count > 0" class="px-2 py-0.5 rounded-full bg-gray-100 text-ink-soft">▲ {{ card.votes_count }}</span>
+                                <button v-if="(card.is_mine || board.retro.is_facilitator) && collecting"
+                                        class="text-gray-300 hover:text-red-500 font-bold transition" @click="deleteCard(card.id)">&times;</button>
+                            </span>
+                        </li>
+                    </template>
+                </draggable>
                 <p v-if="!column.cards.length" class="text-sm text-ink-faint mt-3">Пока пусто</p>
 
                 <form v-if="collecting && draftColumn === column.id" class="mt-3 space-y-2" @submit.prevent="addCard(column.id)">
@@ -346,5 +376,14 @@ onBeforeUnmount(() => {
 
 .board-cards li {
     animation: card-in 0.2s ease-out;
+}
+
+.drag-ghost {
+    opacity: 0.5;
+    border-style: dashed;
+}
+
+.drag-active {
+    cursor: grabbing;
 }
 </style>

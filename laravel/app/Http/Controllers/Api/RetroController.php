@@ -46,7 +46,7 @@ class RetroController extends Controller
         $retro->loadCount(['participants', 'cards']);
 
         $columns = $retro->columns()
-            ->with(['cards' => fn ($query) => $query->with('votes', 'author')->withCount('votes')->latest()])
+            ->with(['cards' => fn ($query) => $query->with('votes', 'author')->withCount('votes')->orderBy('position')->orderBy('id')])
             ->get();
 
         $inDiscussion = $retro->phase->isDiscussion();

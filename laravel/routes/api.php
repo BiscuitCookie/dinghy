@@ -30,6 +30,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/columns/{column}/cards', [CardController::class, 'store']);
     Route::delete('/cards/{card}', [CardController::class, 'destroy']);
     Route::post('/cards/{card}/vote', [CardController::class, 'vote']);
+    Route::patch('/cards/{card}/move', [CardController::class, 'move']);
 
     Route::post('/retros/{retro}/action-items', [ActionItemController::class, 'store']);
     Route::patch('/action-items/{item}', [ActionItemController::class, 'update']);

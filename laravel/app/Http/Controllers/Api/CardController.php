@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\RetroPhase;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\MoveCardRequest;
 use App\Http\Requests\StoreCardRequest;
 use App\Http\Resources\CardResource;
 use App\Models\Card;
@@ -27,8 +28,9 @@ class CardController extends Controller
         $data = $request->validated();
 
         $card = $column->cards()->create([
-            'user_id' => $request->user()->id,
-            'body'    => trim($data['body']),
+            'user_id'  => $request->user()->id,
+            'body'     => trim($data['body']),
+            'position' => (int) $column->cards()->max('position') + 1,
         ]);
 
         return (new CardResource($this->reload($card)))
@@ -77,6 +79,39 @@ class CardController extends Controller
         });
 
         return (new CardResource($this->reload($result)))->response();
+    }
+
+    public function move(MoveCardRequest $request, Card $card): JsonResponse
+    {
+        $retro = $card->column->retro;
+        Gate::authorize('view', $retro);
+        abort_unless(
+            $retro->phase === RetroPhase::Collect || $retro->isFacilitator($request->user()),
+            403,
+            'Перемещать карточки можно в фазе сбора (или фасилитатору)'
+        );
+
+        $data = $request->validated();
+        $targetColumn = RetroColumn::findOrFail($data['retro_column_id']);
+        abort_unless($targetColumn->retro_id === $retro->id, 422, 'Колонка из другого ретро');
+
+        DB::transaction(function () use ($card, $targetColumn, $data) {
+            $oldColumnId = $card->retro_column_id;
+            $card->update([
+                'retro_column_id' => $targetColumn->id,
+                'position'        => $data['position'],
+            ]);
+
+            foreach (array_unique([$oldColumnId, $targetColumn->id]) as $columnId) {
+                Card::where('retro_column_id', $columnId)
+                    ->orderBy('position')
+                    ->orderBy('id')
+                    ->pluck('id')
+                    ->each(fn ($id, $index) => Card::whereKey($id)->update(['position' => $index]));
+            }
+        });
+
+        return (new CardResource($this->reload($card)))->response();
     }
 
     private function reload(Card $card): Card

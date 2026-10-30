@@ -244,6 +244,35 @@ class RetroApiTest extends TestCase
         ])->assertUnprocessable()->assertJsonValidationErrors('token');
     }
 
+    public function test_card_can_be_moved_between_columns_in_collect_phase(): void
+    {
+        $user = User::factory()->create();
+        $retro = $this->makeRetro($user);
+        $retro->update(['phase' => RetroPhase::Collect]);
+        [$columnA, $columnB] = $retro->columns;
+        $first = $columnA->cards()->create(['user_id' => $user->id, 'body' => 'A1']);
+        $second = $columnA->cards()->create(['user_id' => $user->id, 'body' => 'A2']);
+
+        Sanctum::actingAs($user);
+        $this->patchJson("/api/cards/{$first->id}/move", [
+            'retro_column_id' => $columnB->id,
+            'position'        => 0,
+        ])->assertOk();
+
+        $this->assertSame($columnB->id, $first->fresh()->retro_column_id);
+        $this->assertSame(0, $second->fresh()->position);
+
+        // В фазе голосования участник перемещать не может (фасилитатору — можно)
+        $participant = User::factory()->create();
+        $retro->participants()->attach($participant->id, ['role' => Retro::ROLE_PARTICIPANT]);
+        $retro->update(['phase' => RetroPhase::Vote]);
+        Sanctum::actingAs($participant);
+        $this->patchJson("/api/cards/{$first->id}/move", [
+            'retro_column_id' => $columnA->id,
+            'position'        => 0,
+        ])->assertForbidden();
+    }
+
     public function test_facilitator_manages_timer_and_participant_cannot(): void
     {
         $facilitator = User::factory()->create();
