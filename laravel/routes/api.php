@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CardController;
 use App\Http\Controllers\Api\MetaController;
 use App\Http\Controllers\Api\RetroController;
+use App\Http\Controllers\Api\TimerController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
@@ -22,6 +23,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/retros/join', [RetroController::class, 'join']);
     Route::get('/retros/{retro}', [RetroController::class, 'show']);
     Route::post('/retros/{retro}/advance', [RetroController::class, 'advancePhase']);
+
+    Route::post('/retros/{retro}/timer', [TimerController::class, 'store']);
+    Route::delete('/retros/{retro}/timer', [TimerController::class, 'destroy']);
 
     Route::post('/columns/{column}/cards', [CardController::class, 'store']);
     Route::delete('/cards/{card}', [CardController::class, 'destroy']);

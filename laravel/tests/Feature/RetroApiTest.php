@@ -244,6 +244,30 @@ class RetroApiTest extends TestCase
         ])->assertUnprocessable()->assertJsonValidationErrors('token');
     }
 
+    public function test_facilitator_manages_timer_and_participant_cannot(): void
+    {
+        $facilitator = User::factory()->create();
+        $participant = User::factory()->create();
+        $retro = $this->makeRetro($facilitator);
+        $retro->participants()->attach($participant->id, ['role' => Retro::ROLE_PARTICIPANT]);
+
+        Sanctum::actingAs($participant);
+        $this->postJson("/api/retros/{$retro->id}/timer", ['minutes' => 5])->assertForbidden();
+
+        Sanctum::actingAs($facilitator);
+        $this->postJson("/api/retros/{$retro->id}/timer", ['minutes' => 5])->assertOk();
+        $this->assertEqualsWithDelta(
+            now()->addMinutes(5)->timestamp,
+            $retro->fresh()->timer_ends_at->timestamp,
+            5,
+        );
+
+        $this->postJson("/api/retros/{$retro->id}/timer", ['minutes' => 500])->assertUnprocessable();
+
+        $this->deleteJson("/api/retros/{$retro->id}/timer")->assertOk();
+        $this->assertNull($retro->fresh()->timer_ends_at);
+    }
+
     public function test_meta_exposes_phases_and_templates(): void
     {
         Sanctum::actingAs(User::factory()->create());

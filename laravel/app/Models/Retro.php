@@ -14,7 +14,7 @@ use Illuminate\Support\Str;
 /**
  * @property RetroPhase $phase
  */
-#[Fillable(['user_id', 'title', 'invite_code', 'phase', 'is_anonymous', 'votes_per_user'])]
+#[Fillable(['user_id', 'title', 'invite_code', 'phase', 'is_anonymous', 'votes_per_user', 'timer_ends_at'])]
 class Retro extends Model
 {
     public const ROLE_FACILITATOR = 'facilitator';
@@ -28,8 +28,9 @@ class Retro extends Model
     protected function casts(): array
     {
         return [
-            'phase'        => RetroPhase::class,
-            'is_anonymous' => 'boolean',
+            'phase'         => RetroPhase::class,
+            'is_anonymous'  => 'boolean',
+            'timer_ends_at' => 'datetime',
         ];
     }
 

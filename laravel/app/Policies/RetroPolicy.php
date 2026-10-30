@@ -22,6 +22,11 @@ class RetroPolicy
         return $retro->isFacilitator($user);
     }
 
+    public function manageTimer(User $user, Retro $retro): bool
+    {
+        return $retro->isFacilitator($user);
+    }
+
     public function delete(User $user, Retro $retro): bool
     {
         return $retro->user_id === $user->id;

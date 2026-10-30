@@ -21,6 +21,7 @@ class RetroResource extends JsonResource
             'phase'              => $this->phase,
             'is_anonymous'       => $this->is_anonymous,
             'votes_per_user'     => $this->votes_per_user,
+            'timer_ends_at'      => $this->timer_ends_at?->toISOString(),
             'is_facilitator'     => $user ? $this->isFacilitator($user) : false,
             'invite_code'        => $user && $this->isFacilitator($user) ? $this->invite_code : null,
             'participants_count' => $this->participants_count ?? $this->participants()->count(),

@@ -14,6 +14,7 @@ export interface Retro {
     invite_code: string | null;
     participants_count: number;
     cards_count: number;
+    timer_ends_at: string | null;
     created_at: string;
 }
 

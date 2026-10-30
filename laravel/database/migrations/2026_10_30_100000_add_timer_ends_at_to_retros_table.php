@@ -1,0 +1,27 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class () extends Migration {
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('retros', function (Blueprint $table) {
+            $table->timestamp('timer_ends_at')->nullable()->after('votes_per_user');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('retros', function (Blueprint $table) {
+            $table->dropColumn('timer_ends_at');
+        });
+    }
+};

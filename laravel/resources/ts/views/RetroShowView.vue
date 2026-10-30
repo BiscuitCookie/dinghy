@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { api, ApiError } from '../api';
 import { toast } from '../toast';
@@ -103,6 +103,45 @@ async function toggleVote(cardId: number) {
     await load();
 }
 
+// --- таймер ---
+
+const timerMinutes = ref(5);
+const beepedFor = ref<number | null>(null);
+
+const timerEnd = computed(() =>
+    board.value?.retro.timer_ends_at ? new Date(board.value.retro.timer_ends_at) : null,
+);
+
+const timerActive = computed(() => timerEnd.value !== null && timerEnd.value.getTime() > now.value);
+
+const timerRemaining = computed(() =>
+    timerActive.value ? Math.ceil((timerEnd.value!.getTime() - now.value) / 1000) : 0,
+);
+
+const timerLabel = computed(() => {
+    const seconds = timerRemaining.value;
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+});
+
+async function startTimer() {
+    const response = await api.post<ApiResource<Retro>>(`/retros/${route.params.id}/timer`, { minutes: timerMinutes.value });
+    board.value!.retro = response.data;
+    beepedFor.value = null;
+}
+
+async function cancelTimer() {
+    const response = await api.delete<ApiResource<Retro>>(`/retros/${route.params.id}/timer`);
+    board.value!.retro = response.data;
+    beepedFor.value = null;
+}
+
+watch(timerRemaining, (value) => {
+    if (value === 0 && timerEnd.value && beepedFor.value !== timerEnd.value.getTime()) {
+        beepedFor.value = timerEnd.value.getTime();
+        toast('Время вышло!', 'error');
+    }
+});
+
 // --- действия ---
 
 const newItem = ref('');
@@ -190,10 +229,25 @@ onBeforeUnmount(() => {
                         Код приглашения: <span class="font-mono font-medium">{{ board.retro.invite_code }}</span>
                     </p>
                 </div>
-                <button v-if="board.retro.is_facilitator && board.retro.phase !== 'done'"
-                        class="btn-primary" @click="advance">
-                    Следующая фаза
-                </button>
+                <div class="flex items-center gap-4">
+                    <div v-if="timerActive"
+                         class="flex items-center gap-2 font-mono text-lg tabular-nums"
+                         :class="timerRemaining < 30 ? 'text-red-600 font-semibold' : 'text-ink'">
+                        <span aria-hidden="true">⏱</span> {{ timerLabel }}
+                        <button v-if="board.retro.is_facilitator" class="text-xs text-ink-faint hover:text-ink transition" @click="cancelTimer">
+                            Сбросить
+                        </button>
+                    </div>
+                    <form v-else-if="board.retro.is_facilitator" class="flex items-center gap-2" @submit.prevent="startTimer">
+                        <input v-model.number="timerMinutes" type="number" min="1" max="120"
+                               class="input w-20" title="Минуты" />
+                        <button type="submit" class="btn-ghost whitespace-nowrap">⏱ Таймер</button>
+                    </form>
+                    <button v-if="board.retro.is_facilitator && board.retro.phase !== 'done'"
+                            class="btn-primary" @click="advance">
+                        Следующая фаза
+                    </button>
+                </div>
             </div>
         </div>
 
