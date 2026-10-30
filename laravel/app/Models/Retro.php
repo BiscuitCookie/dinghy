@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\RetroPhase;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,6 +14,7 @@ use Illuminate\Support\Str;
 
 /**
  * @property RetroPhase $phase
+ * @property Carbon|null $timer_ends_at
  */
 #[Fillable(['user_id', 'title', 'invite_code', 'phase', 'is_anonymous', 'votes_per_user', 'timer_ends_at'])]
 class Retro extends Model
